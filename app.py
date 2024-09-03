@@ -3,11 +3,9 @@ import Pylette
 import math
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import json
 import requests
 from io import BytesIO
 from fastai.vision.all import *
-from tabulate import tabulate
 
 app = Flask(__name__)
 CORS(app) 
