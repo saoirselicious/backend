@@ -5,7 +5,6 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 from io import BytesIO
-from fastai.vision.all import *
 
 app = Flask(__name__)
 CORS(app) 
