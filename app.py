@@ -72,7 +72,7 @@ def receive_tracks():
         except Exception as e:
             print(f"Error processing item: {e}")
         
-    headers = ["Artist Name", "Track Name", "Color Palette", "Colour Group", "Frequency of Colour"]
+    headers = ["artist", "track", "palette", "group", "frequency"]
     table_json = [dict(zip(headers, row)) for row in table_data]
     
     return jsonify({"status": "success", "data": table_json}), 200
