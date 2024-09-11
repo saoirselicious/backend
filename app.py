@@ -5,6 +5,9 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 import requests
 from io import BytesIO
+from dotenv import load_dotenv
+import os
+
 
 app = Flask(__name__)
 CORS(app) 
@@ -76,6 +79,64 @@ def receive_tracks():
     table_json = [dict(zip(headers, row)) for row in table_data]
     
     return jsonify({"status": "success", "data": table_json}), 200
+
+SPOTIFY_API_URL = 'https://accounts.spotify.com/api/token'
+
+@app.route('/api/spotify/auth', methods=['POST'])
+def get_spotify_token():
+    load_dotenv()
+    code = request.json.get('code')
+    client_id = os.getenv('SPOTIFY_CLIENT_ID')
+    client_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
+    redirect_uri = os.getenv('SPOTIFY_REDIRECT_URI')
+    
+    data = {
+        'grant_type': 'authorization_code',
+        'code': code,
+        'redirect_uri': redirect_uri,
+        'client_id': client_id,
+        'client_secret': client_secret
+    }
+    
+    print("---------------------")
+    print(data)
+
+    response = requests.post(SPOTIFY_API_URL, data=data)
+    response_json = response.json()
+    print('Spotify API response:', response_json)  # Log the full response
+    return jsonify(response_json)
+
+@app.route('/api/spotify/top-tracks', methods=['GET'])
+def get_top_tracks():
+    auth_header = request.headers.get('Authorization')
+    print(f"Authorization header: {auth_header}")
+
+    if not auth_header:
+        return jsonify({"error": "Authorization header is missing"}), 400
+
+    parts = auth_header.split(' ')
+    print(f"Authorization header parts: {parts}")
+    
+    if len(parts) != 2 or parts[0] != 'Bearer':
+        return jsonify({"error": "Invalid Authorization header format"}), 400
+    
+    token = parts[1]
+    
+    try:
+        response = requests.get(
+            'https://api.spotify.com/v1/me/top/tracks?time_range=long_term&limit=50',
+            headers={'Authorization': f'Bearer {token}'}
+        )
+        print(f"Spotify API response status code: {response.status_code}")
+        print(f"Spotify API response body: {response.text}")  # Log the response body
+
+        response.raise_for_status()
+        return jsonify(response.json())
+    except requests.RequestException as e:
+        # Log more detailed error information
+        error_message = str(e)
+        print(f"Error fetching top tracks: {error_message}")
+        return jsonify({"error": error_message}), 500
 
 def rgb_to_hex(r, g, b):
     return '#{:02x}{:02x}{:02x}'.format(r, g, b)
