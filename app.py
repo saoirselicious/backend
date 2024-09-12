@@ -86,6 +86,7 @@ SPOTIFY_API_URL = 'https://accounts.spotify.com/api/token'
 def get_spotify_token():
     load_dotenv()
     code = request.json.get('code')
+    print (os.getenv('SPOTIFY_REDIRECT_URI'))
     client_id = os.getenv('SPOTIFY_CLIENT_ID')
     client_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
     redirect_uri = os.getenv('SPOTIFY_REDIRECT_URI')
