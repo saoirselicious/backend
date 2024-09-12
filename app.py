@@ -89,6 +89,7 @@ def get_spotify_token():
     client_id = os.getenv('SPOTIFY_CLIENT_ID')
     client_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
     redirect_uri = os.getenv('SPOTIFY_REDIRECT_URI')
+    print ("Got a message")
     
     data = {
         'grant_type': 'authorization_code',
