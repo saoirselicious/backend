@@ -10,7 +10,7 @@ import os
 
 
 app = Flask(__name__)
-CORS(app) 
+CORS(app, resources={r"/*": {"origins": "https://saoirseseeber.ie"}})
 
 @app.route('/receive-tracks', methods=['POST'])
 def receive_tracks():
