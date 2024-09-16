@@ -129,6 +129,8 @@ def get_spotify_token():
 @app.route('/api/spotify/top-tracks', methods=['GET'])
 def get_top_tracks():
     auth_header = request.headers.get('Authorization')
+    refresh_token = request.headers.get('Refresh-Token')  # Add this header to handle refresh token
+
     print(f"Authorization header: {auth_header}")
 
     if not auth_header:
@@ -150,13 +152,50 @@ def get_top_tracks():
         print(f"Spotify API response status code: {response.status_code}")
         print(f"Spotify API response body: {response.text}")  # Log the response body
 
+        # Check if token is expired (401 Unauthorized)
+        if response.status_code == 401 and refresh_token:
+            # Token expired, refresh it
+            print("Token expired, refreshing...")
+            new_token = refresh_spotify_token(refresh_token)
+
+            if new_token:
+                # Retry the request with the new token
+                response = requests.get(
+                    'https://api.spotify.com/v1/me/top/tracks?time_range=long_term&limit=50',
+                    headers={'Authorization': f'Bearer {new_token}'}
+                )
+                print(f"Retry with new token response status code: {response.status_code}")
+                print(f"Retry with new token response body: {response.text}")
+
         response.raise_for_status()
         return jsonify(response.json())
+
     except requests.RequestException as e:
-        # Log more detailed error information
         error_message = str(e)
         print(f"Error fetching top tracks: {error_message}")
         return jsonify({"error": error_message}), 500
+    
+def refresh_spotify_token(refresh_token):
+    load_dotenv()
+    client_id = os.getenv('SPOTIFY_CLIENT_ID')
+    client_secret = os.getenv('SPOTIFY_CLIENT_SECRET')
+    
+    data = {
+        'grant_type': 'refresh_token',
+        'refresh_token': refresh_token,
+        'client_id': client_id,
+        'client_secret': client_secret
+    }
+
+    response = requests.post(SPOTIFY_API_URL, data=data)
+    response_json = response.json()
+
+    if 'access_token' in response_json:
+        new_token = response_json['access_token']
+        return new_token
+    else:
+        print("Error refreshing token:", response_json)
+        return None
 
 def rgb_to_hex(r, g, b):
     return '#{:02x}{:02x}{:02x}'.format(r, g, b)
