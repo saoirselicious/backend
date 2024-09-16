@@ -10,7 +10,7 @@ import os
 
 
 app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "https://saoirseseeber.ie"}})
+CORS(app, resources={r"/*"})
 
 @app.route('/receive-tracks', methods=['POST'])
 def receive_tracks():
@@ -81,6 +81,24 @@ def receive_tracks():
     return jsonify({"status": "success", "data": table_json}), 200
 
 SPOTIFY_API_URL = 'https://accounts.spotify.com/api/token'
+
+@app.route('/api/spotify/config', methods=['GET'])
+def get_spotify_config():
+    load_dotenv()
+    client_id = os.getenv('SPOTIFY_CLIENT_ID')
+    redirect_uri = os.getenv('SPOTIFY_REDIRECT_URI')
+    
+    # Log the loaded environment variables for debugging
+    print(f"Loaded SPOTIFY_CLIENT_ID: {client_id}")
+    print(f"Loaded SPOTIFY_REDIRECT_URI: {redirect_uri}")
+    
+    if not client_id or not redirect_uri:
+        return jsonify({"error": "Environment variables are not set properly"}), 500
+
+    return jsonify({
+        'clientId': client_id,
+        'redirectUri': redirect_uri
+    })
 
 @app.route('/api/spotify/auth', methods=['POST'])
 def get_spotify_token():
