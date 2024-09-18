@@ -88,16 +88,44 @@ def get_spotify_config():
     client_id = os.getenv('SPOTIFY_CLIENT_ID')
     redirect_uri = os.getenv('SPOTIFY_REDIRECT_URI')
     
-    # Log the loaded environment variables for debugging
-    print(f"Loaded SPOTIFY_CLIENT_ID: {client_id}")
-    print(f"Loaded SPOTIFY_REDIRECT_URI: {redirect_uri}")
-    
     if not client_id or not redirect_uri:
         return jsonify({"error": "Environment variables are not set properly"}), 500
 
     return jsonify({
         'clientId': client_id,
         'redirectUri': redirect_uri
+    })
+
+@app.route('/api/recaptcha/config', methods=['GET'])
+def get_recaptcha_config():
+    load_dotenv()
+    site_key = os.getenv('RECAPTCHA_SITE_KEY')
+    secret = os.getenv('RECAPTCHA_SECRET')
+
+    if not site_key or not secret:
+        return jsonify({"error": "Environment variables are not set properly"}), 500
+
+    return jsonify({
+        'site_key': site_key,
+        'secret': secret
+    })
+    
+@app.route('/api/emailjs/config', methods=['GET'])
+def get_emailjs_config():
+    load_dotenv()
+    service_id = os.getenv('EMAILJS_SERVICE_ID')
+    public_key = os.getenv('EMAILJS_PUBLIC_KEY')
+    private_key = os.getenv('EMAILJS_PRIVATE_KEY')
+    template_id = os.getenv('EMAILJS_TEMPLATE_ID')
+
+    if not service_id or not public_key or not private_key or not template_id:
+        return jsonify({"error": "Environment variables are not set properly"}), 500
+
+    return jsonify({
+        'service_id': service_id,
+        'public_key': public_key,
+        'private_key': private_key,
+        'template_id': template_id
     })
 
 @app.route('/api/spotify/auth', methods=['POST'])
