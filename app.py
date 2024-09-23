@@ -16,7 +16,7 @@ CORS(app, resources={r"/*"})
 
 # Swagger UI setup
 SWAGGER_URL = '/swagger'
-API_URL = '/static/swagger.yaml'  # Adjust the path to your YAML file
+API_URL = '/static/swagger.yaml'  
 swaggerui_blueprint = get_swaggerui_blueprint(
     SWAGGER_URL,
     API_URL,
@@ -32,7 +32,6 @@ def receive_tracks():
     print("receive_tracks")
     
     data = request.json
-    print(data)
     table_data = []
     if not data or not isinstance(data, list):
         return jsonify({"error": "Invalid data format"}), 400
