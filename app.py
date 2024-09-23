@@ -1,16 +1,31 @@
 import PIL.Image
 import Pylette
 import math
-from flask import Flask, request, jsonify
+from flask import Flask, request, jsonify, send_from_directory
 from flask_cors import CORS
+from flask_swagger_ui import get_swaggerui_blueprint
 import requests
 from io import BytesIO
 from dotenv import load_dotenv
 import os
+from psycopg2 import pool
 
 
 app = Flask(__name__)
 CORS(app, resources={r"/*"})
+
+# Swagger UI setup
+SWAGGER_URL = '/swagger'
+API_URL = '/static/swagger.yaml'  # Adjust the path to your YAML file
+swaggerui_blueprint = get_swaggerui_blueprint(
+    SWAGGER_URL,
+    API_URL,
+    config={
+        'Sortihue': "Your API"
+    }
+)
+
+app.register_blueprint(swaggerui_blueprint, url_prefix=SWAGGER_URL)
 
 @app.route('/receive-tracks', methods=['POST'])
 def receive_tracks():
@@ -127,7 +142,64 @@ def get_emailjs_config():
         'private_key': private_key,
         'template_id': template_id
     })
+    
+@app.route('/api/db/timeline', methods=['GET'])
+def get_db_timeline():
+    load_dotenv()
+    
+    connection_string = os.getenv('DATABASE_URL')
+    connection_pool = pool.SimpleConnectionPool(1, 10, connection_string)
 
+    if connection_pool:
+        print("Connection pool created successfully")
+        
+    conn = connection_pool.getconn()
+    cur = conn.cursor()
+
+    # Query to get experiences with their projects
+    query = """
+    SELECT e.title, e.role, e.start_date, e.end_date, e.icon,
+           p.title AS project_title, p.info AS project_info, p.tech AS project_tech
+    FROM timeline_experiences e
+    LEFT JOIN timeline_projects p ON e.id = p.experience_id;
+    """
+    cur.execute(query)
+    
+    # Fetch all data
+    results = cur.fetchall()
+
+    # Closing connections
+    cur.close()
+    connection_pool.putconn(conn)
+    connection_pool.closeall()
+
+    # Process results into a structured format
+    timeline = {}
+    for row in results:
+        experience_title = row[0]
+        project_title = row[5]
+
+        # If experience doesn't exist in timeline, add it
+        if experience_title not in timeline:
+            timeline[experience_title] = {
+                "role": row[1],
+                "start_date": row[2],
+                "end_date": row[3],
+                "icon": row[4],
+                "projects": []
+            }
+
+        # If there's a project associated, add it to the projects list
+        if project_title:
+            project = {
+                "title": row[5],
+                "info": row[6],
+                "tech": row[7]
+            }
+            timeline[experience_title]["projects"].append(project)
+
+    return timeline
+    
 @app.route('/api/spotify/auth', methods=['POST'])
 def get_spotify_token():
     load_dotenv()

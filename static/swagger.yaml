@@ -1,0 +1,61 @@
+openapi: 3.0.0
+info:
+  title: Your API Title
+  version: 1.0.0
+paths:
+  /receive-tracks:
+    post:
+      summary: Receives track data
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                type: object
+                properties:
+                  artists:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        name:
+                          type: string
+                  name:
+                    type: string
+      responses:
+        200:
+          description: Successful response
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                  data:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        artist:
+                          type: string
+                        track:
+                          type: string
+                        palette:
+                          type: array
+                          items:
+                            type: array
+                            items:
+                              type: integer
+                        group:
+                          type: array
+                          items:
+                            type: string
+                        frequency:
+                          type: array
+                          items:
+                            type: number
+        400:
+          description: Invalid data format
