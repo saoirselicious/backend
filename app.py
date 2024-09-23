@@ -32,6 +32,7 @@ def receive_tracks():
     print("receive_tracks")
     
     data = request.json
+    print(data)
     table_data = []
     if not data or not isinstance(data, list):
         return jsonify({"error": "Invalid data format"}), 400
@@ -199,6 +200,56 @@ def get_db_timeline():
             timeline[experience_title]["projects"].append(project)
 
     return timeline
+
+@app.route('/api/db/cv', methods=['GET'])
+def get_db_CV():
+    load_dotenv()
+    
+    connection_string = os.getenv('DATABASE_URL')
+    connection_pool = pool.SimpleConnectionPool(1, 10, connection_string)
+
+    if connection_pool:
+        print("Connection pool created successfully")
+        
+    conn = connection_pool.getconn()
+    cur = conn.cursor()
+
+    queries = {
+        "summary": "SELECT summary FROM cv_summary;",
+        "work_experience": """
+            SELECT company, location, position, dates, description
+            FROM cv_work_experience;
+        """,
+        "work_experience_projects": """
+            SELECT we.company, p.name AS project_name, p.description AS project_description, 
+                   STRING_AGG(pt.technology, ', ') AS technologies
+            FROM cv_work_experience we
+            JOIN cv_projects p ON we.id = p.work_experience_id
+            JOIN cv_project_technologies pt ON p.id = pt.project_id
+            GROUP BY we.company, p.name, p.description;
+        """,
+        "programming_skills": """
+            SELECT skill_type, skill
+            FROM cv_programming_skills;
+        """,
+        "programming_technologies": """
+            SELECT project_id, technology 
+            FROM cv_project_technologies;
+        """,
+        "hobbies": "SELECT hobby FROM cv_hobbies;",
+    }
+        
+    results = {}
+    for key, query in queries.items():
+        cur.execute(query)
+        results[key] = cur.fetchall()
+
+    cur.close()
+    connection_pool.putconn(conn)
+    connection_pool.closeall()
+
+    return jsonify(results)
+    
     
 @app.route('/api/spotify/auth', methods=['POST'])
 def get_spotify_token():
