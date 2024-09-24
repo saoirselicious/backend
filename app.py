@@ -216,16 +216,14 @@ def get_db_CV():
     queries = {
         "summary": "SELECT summary FROM cv_summary;",
         "work_experience": """
-            SELECT company, location, position, dates, description
-            FROM cv_work_experience;
+            SELECT company, location,position, dates, description  FROM cv_work_experience;
         """,
-        "work_experience_projects": """
-            SELECT we.company, p.name AS project_name, p.description AS project_description, 
-                   STRING_AGG(pt.technology, ', ') AS technologies
-            FROM cv_work_experience we
-            JOIN cv_projects p ON we.id = p.work_experience_id
-            JOIN cv_project_technologies pt ON p.id = pt.project_id
-            GROUP BY we.company, p.name, p.description;
+        "projects": """
+            SELECT work_experience_id, name, description FROM cv_projects
+        """,
+        "education": """
+            SELECT institution, degree, grade, dates
+            FROM cv_education;
         """,
         "programming_skills": """
             SELECT skill_type, skill
