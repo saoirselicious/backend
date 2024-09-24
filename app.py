@@ -233,7 +233,7 @@ def get_db_CV():
             SELECT project_id, technology 
             FROM cv_project_technologies;
         """,
-        "hobbies": "SELECT hobby FROM cv_hobbies;",
+        "hobbies": "SELECT name, description FROM cv_hobbies;",
     }
         
     results = {}
