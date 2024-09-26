@@ -58,7 +58,6 @@ def receive_tracks():
                     try:
                         img = PIL.Image.open(BytesIO(response.content)).convert("RGB")
 
-                        # Extract color palette
                         palette = Pylette.extract_colors(BytesIO(response.content), resize=True,  palette_size=10)
                         print(palette.number_of_colors)
                         frequencies = palette.frequencies
@@ -156,49 +155,42 @@ def get_db_timeline():
     conn = connection_pool.getconn()
     cur = conn.cursor()
 
-    # Query to get experiences with their projects
     query = """
-    SELECT e.title, e.role, e.start_date, e.end_date, e.icon,
-           p.title AS project_title, p.info AS project_info, p.tech AS project_tech
-    FROM timeline_experiences e
-    LEFT JOIN timeline_projects p ON e.id = p.experience_id;
+        SELECT 
+            e.id,
+            e.title,
+            e.role,
+            e.start_date,
+            e.end_date,
+            e.icon,
+            COALESCE(
+                json_agg(
+                    json_build_object(
+                        'title', p.title,
+                        'info', p.info,
+                        'tech', p.tech
+                    )
+                ) FILTER (WHERE p.id IS NOT NULL), '[]'
+            ) AS projects
+        FROM 
+            timeline_experiences e
+        LEFT JOIN 
+            timeline_projects p ON e.id = p.experience_id
+        GROUP BY 
+            e.id, e.title, e.role, e.start_date, e.end_date, e.icon
+        ORDER BY 
+            e.start_date DESC;
+
     """
     cur.execute(query)
     
-    # Fetch all data
     results = cur.fetchall()
 
-    # Closing connections
     cur.close()
     connection_pool.putconn(conn)
     connection_pool.closeall()
 
-    # Process results into a structured format
-    timeline = {}
-    for row in results:
-        experience_title = row[0]
-        project_title = row[5]
-
-        # If experience doesn't exist in timeline, add it
-        if experience_title not in timeline:
-            timeline[experience_title] = {
-                "role": row[1],
-                "start_date": row[2],
-                "end_date": row[3],
-                "icon": row[4],
-                "projects": []
-            }
-
-        # If there's a project associated, add it to the projects list
-        if project_title:
-            project = {
-                "title": row[5],
-                "info": row[6],
-                "tech": row[7]
-            }
-            timeline[experience_title]["projects"].append(project)
-
-    return timeline
+    return jsonify(results)
 
 @app.route('/api/db/cv', methods=['GET'])
 def get_db_CV():
@@ -271,13 +263,13 @@ def get_spotify_token():
 
     response = requests.post(SPOTIFY_API_URL, data=data)
     response_json = response.json()
-    print('Spotify API response:', response_json)  # Log the full response
+    print('Spotify API response:', response_json)   
     return jsonify(response_json)
 
 @app.route('/api/spotify/top-tracks', methods=['GET'])
 def get_top_tracks():
     auth_header = request.headers.get('Authorization')
-    refresh_token = request.headers.get('Refresh-Token')  # Add this header to handle refresh token
+    refresh_token = request.headers.get('Refresh-Token')  
 
     print(f"Authorization header: {auth_header}")
 
@@ -298,16 +290,13 @@ def get_top_tracks():
             headers={'Authorization': f'Bearer {token}'}
         )
         print(f"Spotify API response status code: {response.status_code}")
-        print(f"Spotify API response body: {response.text}")  # Log the response body
+        print(f"Spotify API response body: {response.text}")  
 
-        # Check if token is expired (401 Unauthorized)
         if response.status_code == 401 and refresh_token:
-            # Token expired, refresh it
             print("Token expired, refreshing...")
             new_token = refresh_spotify_token(refresh_token)
 
             if new_token:
-                # Retry the request with the new token
                 response = requests.get(
                     'https://api.spotify.com/v1/me/top/tracks?time_range=long_term&limit=50',
                     headers={'Authorization': f'Bearer {new_token}'}
